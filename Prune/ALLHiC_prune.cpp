@@ -7,7 +7,7 @@
 using namespace std;
 
 int main(int argc, char* argv[]) {
-	if (argc != 7) {
+	if (argc != 5) {
 		cout << "************************************************************************\n";
 		cout << "    Usage: "<<argv[0]<<" -i Allele.ctg.table -b sorted.bam\n";
 		cout << "      -h : help and usage.\n";
