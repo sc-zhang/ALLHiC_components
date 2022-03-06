@@ -1,9 +1,9 @@
 #include "Prune.h"
 
 Prune::Prune() {
-	bamfile = "";
-	table = "";
-	refSeq = "";
+	this->bamfile = "";
+	this->table = "";
+	this->refSeq = "";
 }
 
 Prune::Prune(string bamfile, string table, string refSeq) {
@@ -43,7 +43,7 @@ bool Prune::GeneratePairsAndCtgs() {
 		return false;
 	}
 	else {
-		long ctg1, ctg2;
+		int ctg1, ctg2;
 		string sctg1, sctg2;
 		bam1_t *rec = bam_init1();
 		htsFile *inbam = hts_open(bamfile.c_str(), "rb");
@@ -69,17 +69,19 @@ bool Prune::GeneratePairsAndCtgs() {
 				continue;
 			}
 			if(sctg1.compare(sctg2)>=0){
-				long tmp = ctg1;
+				int tmp = ctg1;
 				ctg1 = ctg2;
 				ctg2 = tmp;
 			}
-			pairdb[ctg1][ctg2].push_back(bam_get_qname(rec));
+			pairdb[ctg1][ctg2]++;
 			ctgdb[ctg1]++;
 			ctgdb[ctg2]++;
 		}
 		hts_close(inbam);
-
+		delete rec;
+		delete hdr;
 	}
+	return true;
 }
 
 //Create removedb_Allele.txt, removedb_nonBest.txt and log.txt;
@@ -95,7 +97,7 @@ bool Prune::GenerateRemovedb() {
 	string temp;
 	string sctg1, sctg2;
 	int ctg1, ctg2;
-	long num_r;
+	long long num_r;
 
 	fin.open(table);
 	if (fin) {
@@ -122,9 +124,7 @@ bool Prune::GenerateRemovedb() {
 					ss>>key;
 					tempdb[key]++;
 					if(pairdb.count(ctg1)>0 && pairdb[ctg1].count(ctg2)>0){
-						for(auto v: pairdb[ctg1][ctg2]){
-							removedb[v]++;
-						}
+						removedb[ctg1].insert(ctg2);
 					}
 				}
 			}
@@ -155,7 +155,7 @@ bool Prune::GenerateRemovedb() {
 					if(pairdb[nctg1].count(nctg2)==0){
 						continue;
 					}
-					num_r = pairdb[nctg1][nctg2].size();
+					num_r = pairdb[nctg1][nctg2];
 					if(retaindb.count(ctg2)==0){
 						retaindb[ctg2] = ctg1;
 						numdb[ctg2] = num_r;
@@ -182,9 +182,7 @@ bool Prune::GenerateRemovedb() {
 						ctg1 = ctg2;
 						ctg2 = tmp;
 					}
-					for(auto id: pairdb[ctg1][ctg2]){
-						removedb[id]++;
-					}
+					removedb[ctg1].insert(ctg2);
 				}
 			}
 		}
@@ -196,6 +194,8 @@ bool Prune::GenerateRemovedb() {
 
 //Directly to create prunning.bam through pipe with samtools
 int Prune::CreatePrunedBam() {
+	int ctg1, ctg2;
+	string sctg1, sctg2;
 	string outbam = "prunning.bam";
 	htsFile *in = hts_open(bamfile.c_str(), "rb");
 	htsFile *out = hts_open(outbam.c_str(), "wb");
@@ -208,7 +208,16 @@ int Prune::CreatePrunedBam() {
 		return -1;
 	}
 	while((res = sam_read1(in, hdr, rec))>=0){
-		if(removedb.count(bam_get_qname(rec))!=0||rec->core.mtid==-1){
+		ctg1 = rec->core.tid;
+		ctg2 = rec->core.mtid;
+		sctg1 = sctgdb[ctg1];
+		sctg2 = sctgdb[ctg2];
+		if(sctg1.compare(sctg2)>=0){
+			int tmp = ctg1;
+			ctg1 = ctg2;
+			ctg2 = tmp;
+		}
+		if((removedb.count(ctg1)!=0 && removedb[ctg1].count(ctg2) !=0) || rec->core.mtid==-1){
 			continue;
 		}
 		if(sam_write1(out, hdr, rec)<0){
@@ -217,6 +226,8 @@ int Prune::CreatePrunedBam() {
 	}
 	if(hts_close(in)>=0&&hts_close(out)>=0){
 		return rmcnt;
+		delete hdr;
+		delete rec;
 	}
 
 	return -1;
