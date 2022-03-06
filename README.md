@@ -21,11 +21,10 @@ make
 ### Usage
 ```bash
 ************************************************************************
-    Usage: ./ALLHiC_prune -i Allele.ctg.table -b sorted.bam -r draft.asm.fasta
+    Usage: ./ALLHiC_prune -i Allele.ctg.table -b sorted.bam
       -h : help and usage.
       -i : Allele.ctg.table
       -b : sorted.bam
-      -r : draft.asm.fasta
 ************************************************************************
 ```
 ## Other scripts

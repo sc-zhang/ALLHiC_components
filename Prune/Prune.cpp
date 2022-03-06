@@ -3,13 +3,11 @@
 Prune::Prune() {
 	this->bamfile = "";
 	this->table = "";
-	this->refSeq = "";
 }
 
-Prune::Prune(string bamfile, string table, string refSeq) {
+Prune::Prune(string bamfile, string table) {
 	this->bamfile = bamfile;
 	this->table = table;
-	this->refSeq = refSeq;
 }
 
 Prune::~Prune(){}
@@ -30,16 +28,15 @@ bool Prune::Split(string source, string delim, vector<string>&target) {
 }
 
 
-void Prune::SetParameter(string bamfile, string table, string refSeq) {
+void Prune::SetParameter(string bamfile, string table) {
 	this->bamfile = bamfile;
 	this->table = table;
-	this->refSeq = refSeq;
 }
 
 
 //Read bamfiles and read them by samtools, then create pairdbs and ctgdbs;
 bool Prune::GeneratePairsAndCtgs() {
-	if (bamfile == "" || table == "" || refSeq == "") {
+	if (bamfile == "" || table == "") {
 		return false;
 	}
 	else {

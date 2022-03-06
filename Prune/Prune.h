@@ -16,7 +16,6 @@ class Prune {
 private:
 	string bamfile;
 	string table;
-	string refSeq;
 	unordered_map<int, unordered_map <int, long long>> pairdb;
 	unordered_map<int, long> ctgdb;
 	unordered_map<string, int> ctgidxdb;
@@ -26,9 +25,9 @@ private:
 	bool Split(string source, string delim, vector<string>&target);
 public:
 	Prune();
-	Prune(string bamfile, string table, string refSeq);
+	Prune(string bamfile, string table);
 	~Prune();
-	void SetParameter(string bamfile, string table, string refSeq);
+	void SetParameter(string bamfile, string table);
 	bool GeneratePairsAndCtgs();
 	bool GenerateRemovedb();
 	int CreatePrunedBam();
