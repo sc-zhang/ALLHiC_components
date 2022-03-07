@@ -3,11 +3,13 @@
 Prune::Prune() {
 	this->bamfile = "";
 	this->table = "";
+	this->refSeq = "";
 }
 
-Prune::Prune(string bamfile, string table) {
+Prune::Prune(string bamfile, string table, string refSeq) {
 	this->bamfile = bamfile;
 	this->table = table;
+	this->refSeq = refSeq;
 }
 
 Prune::~Prune(){}
@@ -28,24 +30,26 @@ bool Prune::Split(string source, string delim, vector<string>&target) {
 }
 
 
-void Prune::SetParameter(string bamfile, string table) {
+void Prune::SetParameter(string bamfile, string table, string refSeq) {
 	this->bamfile = bamfile;
 	this->table = table;
+	this->refSeq = refSeq;
 }
 
 
 //Read bamfiles and read them by samtools, then create pairdbs and ctgdbs;
 bool Prune::GeneratePairsAndCtgs() {
-	if (bamfile == "" || table == "") {
+	if (this->bamfile == "" || this->table == "" || this->refSeq == "") {
 		return false;
 	}
 	else {
 		int ctg1, ctg2;
 		string sctg1, sctg2;
 		bam1_t *rec = bam_init1();
-		htsFile *inbam = hts_open(bamfile.c_str(), "rb");
+		htsFile *inbam = hts_open(this->bamfile.c_str(), "rb");
 		sam_hdr_t *hdr = sam_hdr_read(inbam);
 		int res;
+		long long ridx = 0;
 
 		while((res = sam_read1(inbam, hdr, rec))>=0){
 			ctg1 = rec->core.tid;
@@ -55,7 +59,7 @@ bool Prune::GeneratePairsAndCtgs() {
 			}
 			sctg1 = hdr->target_name[ctg1];
 			sctg2 = hdr->target_name[ctg2];
-
+			
 			ctgidxdb[sctg1] = ctg1;
 			ctgidxdb[sctg2] = ctg2;
 			
@@ -70,7 +74,11 @@ bool Prune::GeneratePairsAndCtgs() {
 				ctg1 = ctg2;
 				ctg2 = tmp;
 			}
-			pairdb[ctg1][ctg2]++;
+			if(!read_idx.count(bam_get_qname(rec))){
+				read_idx[bam_get_qname(rec)] = ridx;
+				ridx++;
+			}
+			pairdb[ctg1][ctg2].push_back(read_idx[bam_get_qname(rec)]);
 			ctgdb[ctg1]++;
 			ctgdb[ctg2]++;
 		}
@@ -84,20 +92,22 @@ bool Prune::GeneratePairsAndCtgs() {
 //Create removedb_Allele.txt, removedb_nonBest.txt and log.txt;
 bool Prune::GenerateRemovedb() {
 	ifstream fin;
-	unordered_set<string>tempset;
+	unordered_map<string, long>tempdb;
 	unordered_map<int, int> retaindb;
 	unordered_map<int, int> numdb;
-	unordered_map<int, unordered_set <int>> removedb;
+	unordered_map<int, vector<int>> nonBest; 
 	vector<string>data;
+	stringstream ss;
+	string key;
 	string temp;
 	string sctg1, sctg2;
 	int ctg1, ctg2;
-	long long num_r;
-	
-	fin.open(table);
+	long num_r;
+
+	fin.open(this->table);
 	if (fin) {
 		while (getline(fin, temp)) {
-			tempset.clear();
+			tempdb.clear();
 			Split(temp, "\t", data);
 			if (data.size() <= 3) {
 				continue;
@@ -113,9 +123,19 @@ bool Prune::GenerateRemovedb() {
 						ctg1 = ctg2;
 						ctg2 = tmp;
 					}
-					removedb[ctg1].insert(ctg2);
+					ss.clear();
+					key = "";
+					ss<<ctg1<<","<<ctg2;
+					ss>>key;
+					tempdb[key]++;
+					if(pairdb.count(ctg1)>0 && pairdb[ctg1].count(ctg2)>0){
+						for(auto v: pairdb[ctg1][ctg2]){
+							removedb[v]++;
+						}
+					}
 				}
 			}
+			nonBest.clear();
 			retaindb.clear();
 			numdb.clear();
 			for (long i = 2; i < data.size(); i++) {
@@ -129,35 +149,50 @@ bool Prune::GenerateRemovedb() {
 						nctg1 = ctg2;
 						nctg2 = ctg1;
 					}
-					if(removedb.count(nctg1) && removedb[nctg1].count(nctg2)){
+					ss.clear();
+					key = "";
+					ss<<nctg1<<","<<nctg2;
+					ss>>key;
+					if(tempdb.count(key)>0){
 						continue;
 					}
-					if(pairdb.count(nctg1)==0 || pairdb[nctg1].count(nctg2)==0){
+					if(pairdb.count(nctg1)==0){
 						continue;
 					}
-					num_r = pairdb[nctg1][nctg2];
+					if(pairdb[nctg1].count(nctg2)==0){
+						continue;
+					}
+					num_r = pairdb[nctg1][nctg2].size();
 					if(retaindb.count(ctg2)==0){
 						retaindb[ctg2] = ctg1;
 						numdb[ctg2] = num_r;
 					}else{
 						if(num_r>numdb[ctg2]){
+							nonBest[ctg2].push_back(retaindb[ctg2]);
 							retaindb[ctg2] = ctg1;
 							numdb[ctg2] = num_r;
+						}else{
+							nonBest[ctg2].push_back(ctg1);
 						}
 					}
 				}
 			}
-			for(unordered_map<int, int>::iterator iter=retaindb.begin(); iter!=retaindb.end(); iter++){
-				ctg1 = iter->first;
-				ctg2 = iter->second;
-				sctg1 = sctgdb[ctg1];
-				sctg2 = sctgdb[ctg2];
-				if(sctg1.compare(sctg2)>=0){
-					int tmp = ctg1;
-					ctg1 = ctg2;
-					ctg2 = tmp;
+			for(unordered_map<int, vector<int>>::iterator iter=nonBest.begin(); iter!=nonBest.end(); iter++){
+				int k = iter->first;
+				for(auto v: iter->second){
+					sctg1 = sctgdb[v];
+					sctg2 = sctgdb[k];
+					ctg1 = v;
+					ctg2 = k;
+					if(sctg1.compare(sctg2)>=0){
+						int tmp = ctg1;
+						ctg1 = ctg2;
+						ctg2 = tmp;
+					}
+					for(auto id: pairdb[ctg1][ctg2]){
+						removedb[id]++;
+					}
 				}
-				allretaindb[ctg1].insert(ctg2);
 			}
 		}
 	}else{
@@ -167,43 +202,30 @@ bool Prune::GenerateRemovedb() {
 }
 
 //Directly to create prunning.bam through pipe with samtools
-long long Prune::CreatePrunedBam() {
-	int ctg1, ctg2;
-	string sctg1, sctg2;
+int Prune::CreatePrunedBam() {
 	string outbam = "prunning.bam";
-	htsFile *in = hts_open(bamfile.c_str(), "rb");
+	htsFile *in = hts_open(this->bamfile.c_str(), "rb");
 	htsFile *out = hts_open(outbam.c_str(), "wb");
 	sam_hdr_t *hdr = sam_hdr_read(in);
 	bam1_t *rec = bam_init1();
 	int res;
-	long long rmcnt = 0;
+	int rmcnt = removedb.size();
 
 	if(sam_hdr_write(out, hdr)<0){
 		return -1;
 	}
 	while((res = sam_read1(in, hdr, rec))>=0){
-		ctg1 = rec->core.tid;
-		ctg2 = rec->core.mtid;
-		sctg1 = sctgdb[ctg1];
-		sctg2 = sctgdb[ctg2];
-		if(sctg1.compare(sctg2)>=0){
-			int tmp = ctg1;
-			ctg1 = ctg2;
-			ctg2 = tmp;
-		}
-		if(allretaindb.count(ctg1)==0 || allretaindb[ctg1].count(ctg2)==0 || rec->core.mtid==-1){
-			rmcnt++;
+		if(read_idx.count(bam_get_qname(rec)) && removedb.count(read_idx[bam_get_qname(rec)])!=0 || rec->core.mtid==-1){
 			continue;
 		}
 		if(sam_write1(out, hdr, rec)<0){
 			return -1;
 		}
 	}
+	delete hdr;
+	delete rec;
 	if(hts_close(in)>=0&&hts_close(out)>=0){
 		return rmcnt;
-		delete hdr;
-		delete rec;
 	}
-
 	return -1;
 }
