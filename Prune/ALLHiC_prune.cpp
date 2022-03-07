@@ -37,7 +37,7 @@ int main(int argc, char* argv[]) {
 		cout<<"Generating remove reads"<<endl;
 		prune.GenerateRemovedb();
 		cout<<"Creating prunned bam file"<<endl;
-		int rmcnt = 0;
+		long long rmcnt = 0;
 		rmcnt = prune.CreatePrunedBam();
 		cout<<"Removed "<<rmcnt<<" reads"<<endl;
 		
