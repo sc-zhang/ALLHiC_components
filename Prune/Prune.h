@@ -20,7 +20,7 @@ private:
 	unordered_map<int, long> ctgdb;
 	unordered_map<string, int> ctgidxdb;
 	unordered_map<int, string> sctgdb;
-	unordered_map<int, unordered_set <long long>> removedb;
+	unordered_map<int, unordered_set <int>> removedb;
 
 	bool Split(string source, string delim, vector<string>&target);
 public:
