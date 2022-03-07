@@ -14,17 +14,18 @@ For build
 ```bash
 git clone https://github.com/sc-zhang/ALLHiC_components.git
 cd Prune
-export CPPFLAGS="-I/path/to/htslib/include"
+export CFLAGS="-I/path/to/htslib/include"
 export LDFLAGS="-L/path/to/htslib/lib"
 make
 ```
 ### Usage
 ```bash
 ************************************************************************
-    Usage: ./ALLHiC_prune -i Allele.ctg.table -b sorted.bam
+    Usage: ./ALLHiC_prune -i Allele.ctg.table -b sorted.bam -r draft.asm.fasta
       -h : help and usage.
       -i : Allele.ctg.table
       -b : sorted.bam
+      -r : draft.asm.fasta
 ************************************************************************
 ```
 ## Other scripts
