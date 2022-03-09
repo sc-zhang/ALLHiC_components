@@ -200,9 +200,9 @@ long long Prune::CreatePrunedBam() {
 		}
 	}
 	if(hts_close(in)>=0&&hts_close(out)>=0){
-		return rmcnt;
 		delete hdr;
 		delete rec;
+		return rmcnt;
 	}
 
 	return -1;
