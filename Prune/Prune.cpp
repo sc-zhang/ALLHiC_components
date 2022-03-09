@@ -179,6 +179,10 @@ long long Prune::CreatePrunedBam() {
 	long long rmcnt = 0;
 
 	if(sam_hdr_write(out, hdr)<0){
+		hts_close(in);
+		hts_close(out);
+		delete hdr;
+		delete rec;
 		return -1;
 	}
 	while((res = sam_read1(in, hdr, rec))>=0){
@@ -196,6 +200,10 @@ long long Prune::CreatePrunedBam() {
 			continue;
 		}
 		if(sam_write1(out, hdr, rec)<0){
+			hts_close(in);
+			hts_close(out);
+			delete hdr;
+			delete rec;
 			return -1;
 		}
 	}
