@@ -16,9 +16,8 @@ def time_print(info):
 def get_opts():
     groups = argparse.ArgumentParser()
     groups.add_argument('-b', '--bam', help='Input bam file', required=True)
-    groups.add_argument('-a', '--agp', help='Input AGP file', required=True)
     groups.add_argument('-l', '--list', help='Chromosome list, contain: ID\tLength', required=True)
-    groups.add_argument('-n', '--npz', help="npz file of hic signal, optional, if not exist, it will be generate after reading hic signals, or it will be loaded for drawing other resolution of heatmap", default="")
+    groups.add_argument('-n', '--npz', help="npz file of hic signal, optional, if this parameter is set but file not exist, it will be generate after reading hic signals, or it will be loaded for drawing other resolution of heatmap", default="")
     groups.add_argument('-m', '--min_size', help="Minium bin size of heatmap, default=50k", default="50k")
     groups.add_argument('-s', '--size', help="Bin size of heatmap, can be a list separated by comma, default=500k, notice: it must be n times of min_size (n is integer) or we will ajust it to nearest one", default="500k")
     groups.add_argument('-o', '--outdir', help='Output directory, default=workdir', default='workdir')
@@ -41,7 +40,7 @@ def get_chr_len(chr_list):
 
 
 # Calc read counts on each bin
-def calc_read_count_per_min_size(chr_len_db, chr_order, bam, agp, min_size):
+def calc_read_count_per_min_size(chr_len_db, chr_order, bam, min_size):
     long_bin_size=min_size
     read_count_whole_genome = {}
     
@@ -58,46 +57,17 @@ def calc_read_count_per_min_size(chr_len_db, chr_order, bam, agp, min_size):
         bin_offset[i] = bin_count[i]+bin_offset[i-1]
     read_count_whole_genome = [[0 for i in range(0, total_bin_count)] for j in range(0, total_bin_count)]
     
-    ctg_on_chr = {}
-    with open(agp, 'r') as f_in:
-        for line in f_in:
-            if line.strip() == '':
-                continue
-            data = line.strip().split()
-            if data[4] == 'U':
-                continue
-            chrn = data[0]
-            start_pos = int(data[1])
-            end_pos = int(data[2])
-            ctg = data[5].replace('_pilon', '')
-            direct = data[-1]
-            ctg_on_chr[ctg] = [chrn, start_pos, end_pos, direct]
-
     with pysam.AlignmentFile(bam, 'rb') as fin:
         for line in fin:
             if line.is_unmapped or line.mate_is_unmapped:
                 continue
-            ctg1 = line.reference_name
-            ctg2 = line.next_reference_name
+            chrn1 = line.reference_name
+            chrn2 = line.next_reference_name
             read_pos1 = line.reference_start+1
             read_pos2 = line.next_reference_start+1
 
-            if ctg1 not in ctg_on_chr or ctg2 not in ctg_on_chr:
-                continue
-            chrn1, ctg_start_pos1, ctg_end_pos1, ctg_direct1 = ctg_on_chr[ctg1]
-            chrn2, ctg_start_pos2, ctg_end_pos2, ctg_direct2 = ctg_on_chr[ctg2]
-            if ctg_direct1 == '+':
-                converted_pos1 = ctg_start_pos1 + read_pos1 - 1
-            else:
-                converted_pos1 = ctg_end_pos1 - read_pos1 + 1
-            if ctg_direct2 == '+':
-                converted_pos2 = ctg_start_pos2 + read_pos2 - 1
-            else:
-                converted_pos2 = ctg_end_pos2 - read_pos2 + 1
-            if chrn1 not in chr_len_db or chrn2 not in chr_len_db:
-                continue
-            pos1_index = int(converted_pos1/long_bin_size)
-            pos2_index = int(converted_pos2/long_bin_size)
+            pos1_index = int(read_pos1/long_bin_size)
+            pos2_index = int(read_pos2/long_bin_size)
             
             chr1_index = chr_order.index(chrn1)
             chr2_index = chr_order.index(chrn2)
@@ -125,7 +95,6 @@ def draw_heatmap(read_count_whole_genome_min_size, bin_offset_min_size, ratio, c
     total_cnt = len(read_count_whole_genome_min_size)
     ratio_cnt = int(round(total_cnt*1.0/ratio+0.51, 0))
     plt_cnt = int(total_cnt*1.0/ratio)
-
     data = read_count_whole_genome_min_size
     
     data = np.pad(data, ((0, ratio_cnt*ratio-total_cnt), (0, ratio_cnt*ratio-total_cnt)), 'constant', constant_values=0)
@@ -165,7 +134,6 @@ def draw_heatmap(read_count_whole_genome_min_size, bin_offset_min_size, ratio, c
         total_cnt = len(sub_data)
         ratio_cnt = int(round(total_cnt*1.0/ratio+0.51, 0))
         plt_cnt = int(total_cnt*1.0/ratio)
-
         sub_data = np.pad(sub_data, ((0, ratio_cnt*ratio-total_cnt), (0, ratio_cnt*ratio-total_cnt)), 'constant', constant_values=0)
         sub_data = sub_data.reshape(-1, ratio_cnt, ratio).sum(axis=2)
         sub_data = sub_data.reshape(ratio_cnt, -1, ratio_cnt).sum(axis=1)
@@ -186,9 +154,8 @@ def draw_heatmap(read_count_whole_genome_min_size, bin_offset_min_size, ratio, c
     plt.close('all')
 
 
-def ALLHiC_plot(bam, agp, chrlist, npzfile, minsize, binsize, outdir):
+def ALLHiC_plot(bam, chrlist, npzfile, minsize, binsize, outdir):
     bam = os.path.abspath(bam)
-    agp = os.path.abspath(agp)
     chrlist = os.path.abspath(chrlist)
     if npzfile != "":
         npzfile = os.path.abspath(npzfile)
@@ -223,7 +190,7 @@ def ALLHiC_plot(bam, agp, chrlist, npzfile, minsize, binsize, outdir):
         bin_offset_min_size = npzdata['bin_offset_min_size']
         read_count_whole_genome_min_size = npzdata['read_count_whole_genome_min_size']
     else:
-        bin_offset_min_size, read_count_whole_genome_min_size = calc_read_count_per_min_size(chr_len_db, chr_order, bam, agp, min_size)
+        bin_offset_min_size, read_count_whole_genome_min_size = calc_read_count_per_min_size(chr_len_db, chr_order, bam, min_size)
         if npzfile != "":
             np.savez(npzfile.replace('.npz', ''), bin_offset_min_size=bin_offset_min_size, read_count_whole_genome_min_size=read_count_whole_genome_min_size)
     
@@ -240,11 +207,10 @@ def ALLHiC_plot(bam, agp, chrlist, npzfile, minsize, binsize, outdir):
 if __name__ == "__main__":
     opts = get_opts()
     bam = opts.bam
-    agp = opts.agp
     chrlist = opts.list
     npzfile = opts.npz
     minsize = opts.min_size
     binsize = opts.size
     outdir = opts.outdir
 
-    ALLHiC_plot(bam, agp, chrlist, npzfile, minsize, binsize, outdir)
+    ALLHiC_plot(bam, chrlist, npzfile, minsize, binsize, outdir)
