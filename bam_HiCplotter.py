@@ -63,6 +63,9 @@ def calc_read_count_per_min_size(chr_len_db, chr_order, bam, min_size):
                 continue
             chrn1 = line.reference_name
             chrn2 = line.next_reference_name
+            if chrn1 not in chr_order or chrn2 not in chr_order:
+                continue
+
             read_pos1 = line.reference_start+1
             read_pos2 = line.next_reference_start+1
 
