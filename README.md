@@ -18,6 +18,12 @@ export CPPFLAGS="-I/path/to/htslib/include"
 export LDFLAGS="-L/path/to/htslib/lib"
 make
 ```
+
+Add the line below to .bashrc or .bash_profile
+```bash
+export LD_LIBRAYR_PATH="/path/to/htslib/lib/":$LD_LIBRARY_PATH
+```
+
 ### Usage
 ```bash
 ************************************************************************
