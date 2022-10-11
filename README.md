@@ -1,7 +1,7 @@
 # Usage
 ## Prune
 ### Dependencies
-* htslib
+* [htslib](https://github.com/samtools/htslib)
 ### Installation
 This is a new version of ALLHiC_prune, for directly use
 ```bash
