@@ -152,10 +152,10 @@ def draw_heatmap(read_count_whole_genome_min_size, bin_offset_min_size, ratio, c
             sr = bin_offset_min_size[idx - 1] * 1. / ratio
             er = bin_offset_min_size[idx] * 1. / ratio
             mr = (sr+er) / 2.
-            plt.plot((sr, sr), (0, plt_cnt), color='black', linestyle=':', lw=1)
-            plt.plot((er, er), (0, plt_cnt), color='black', linestyle=':', lw=1)
-            plt.plot((0, plt_cnt), (sr, sr), color='black', linestyle=':', lw=1)
-            plt.plot((0, plt_cnt), (er, er), color='black', linestyle=':', lw=1)
+            plt.plot((sr, sr), (0, plt_cnt), color='grey', linestyle=':', lw=1)
+            plt.plot((er, er), (0, plt_cnt), color='grey', linestyle=':', lw=1)
+            plt.plot((0, plt_cnt), (sr, sr), color='grey', linestyle=':', lw=1)
+            plt.plot((0, plt_cnt), (er, er), color='grey', linestyle=':', lw=1)
             x_ticks.append(mr)
             y_ticks.append(mr)
             idx += 1
