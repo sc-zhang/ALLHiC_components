@@ -108,9 +108,9 @@ optional arguments:
 **ALLHiC_plot.py** is used to plot heatmap of Hi-C singal, and compare with original version, it can reduce the usage of memory, and easier plot heatmap with other resolution.
 ```bash
 usage: ALLHiC_plot.py [-h] -b BAM -a AGP -l LIST [-n NPZ] [-m MIN_SIZE]
-                      [-s SIZE] [-o OUTDIR]
+                      [-s SIZE] [-o OUTDIR] [--line]
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   -b BAM, --bam BAM     Input bam file
   -a AGP, --agp AGP     Input AGP file
@@ -125,6 +125,7 @@ optional arguments:
                         (n is integer) or we will ajust it to nearest one
   -o OUTDIR, --outdir OUTDIR
                         Output directory, default=workdir
+  --line                Draw dash line for each chromosome
 ```
 
 **Other scripts** are under development, and not recommend to use.
