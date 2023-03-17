@@ -17,8 +17,9 @@ def time_print(info):
 def get_opts():
     groups = argparse.ArgumentParser()
     groups.add_argument('-b', '--bam', help='Input bam file', required=True)
-    groups.add_argument('-a', '--agp', help='Input AGP file', required=True)
     groups.add_argument('-l', '--list', help='Chromosome list, contain: ID\tLength', required=True)
+    groups.add_argument('-a', '--agp', help='Input AGP file, if bam file is a contig-level mapping, agp file is '
+                                            'required', default="")
     groups.add_argument('-n', '--npz',
                         help="npz file of hic signal, optional, if not exist, it will be generate after reading "
                              "hic signals, or it will be loaded for drawing other resolution of heatmap",
@@ -74,7 +75,6 @@ def get_chr_len(chr_list):
 # Calc read counts on each bin
 def calc_read_count_per_min_size(chr_len_db, chr_order, bam, agp, min_size):
     long_bin_size = min_size
-    read_count_whole_genome = {}
 
     bin_offset = [0 for i in range(0, len(chr_order) + 1)]
     bin_count = [0 for i in range(0, len(chr_order) + 1)]
@@ -88,59 +88,86 @@ def calc_read_count_per_min_size(chr_len_db, chr_order, bam, agp, min_size):
     for i in range(1, len(bin_count)):
         bin_offset[i] = bin_count[i] + bin_offset[i - 1]
     read_count_whole_genome = [[0 for i in range(0, total_bin_count)] for j in range(0, total_bin_count)]
+    if agp:
+        ctg_on_chr = {}
+        with open(agp, 'r') as f_in:
+            for line in f_in:
+                if line.strip() == '' or line[0] == '#':
+                    continue
+                data = line.strip().split()
+                if data[4] == 'U':
+                    continue
+                chrn = data[0]
+                start_pos = int(data[1])
+                end_pos = int(data[2])
+                ctg = data[5].replace('_pilon', '')
+                direct = data[-1]
+                ctg_on_chr[ctg] = [chrn, start_pos, end_pos, direct]
 
-    ctg_on_chr = {}
-    with open(agp, 'r') as f_in:
-        for line in f_in:
-            if line.strip() == '' or line[0] == '#':
-                continue
-            data = line.strip().split()
-            if data[4] == 'U':
-                continue
-            chrn = data[0]
-            start_pos = int(data[1])
-            end_pos = int(data[2])
-            ctg = data[5].replace('_pilon', '')
-            direct = data[-1]
-            ctg_on_chr[ctg] = [chrn, start_pos, end_pos, direct]
+        with pysam.AlignmentFile(bam, 'rb') as fin:
+            for line in fin:
+                if line.is_unmapped or line.mate_is_unmapped:
+                    continue
+                ctg1 = line.reference_name
+                ctg2 = line.next_reference_name
+                read_pos1 = line.reference_start + 1
+                read_pos2 = line.next_reference_start + 1
 
-    with pysam.AlignmentFile(bam, 'rb') as fin:
-        for line in fin:
-            if line.is_unmapped or line.mate_is_unmapped:
-                continue
-            ctg1 = line.reference_name
-            ctg2 = line.next_reference_name
-            read_pos1 = line.reference_start + 1
-            read_pos2 = line.next_reference_start + 1
+                if ctg1 not in ctg_on_chr or ctg2 not in ctg_on_chr:
+                    continue
+                chrn1, ctg_start_pos1, ctg_end_pos1, ctg_direct1 = ctg_on_chr[ctg1]
+                chrn2, ctg_start_pos2, ctg_end_pos2, ctg_direct2 = ctg_on_chr[ctg2]
+                if ctg_direct1 == '+':
+                    converted_pos1 = ctg_start_pos1 + read_pos1 - 1
+                else:
+                    converted_pos1 = ctg_end_pos1 - read_pos1 + 1
+                if ctg_direct2 == '+':
+                    converted_pos2 = ctg_start_pos2 + read_pos2 - 1
+                else:
+                    converted_pos2 = ctg_end_pos2 - read_pos2 + 1
+                if chrn1 not in chr_len_db or chrn2 not in chr_len_db:
+                    continue
+                pos1_index = int(converted_pos1 / long_bin_size)
+                pos2_index = int(converted_pos2 / long_bin_size)
 
-            if ctg1 not in ctg_on_chr or ctg2 not in ctg_on_chr:
-                continue
-            chrn1, ctg_start_pos1, ctg_end_pos1, ctg_direct1 = ctg_on_chr[ctg1]
-            chrn2, ctg_start_pos2, ctg_end_pos2, ctg_direct2 = ctg_on_chr[ctg2]
-            if ctg_direct1 == '+':
-                converted_pos1 = ctg_start_pos1 + read_pos1 - 1
-            else:
-                converted_pos1 = ctg_end_pos1 - read_pos1 + 1
-            if ctg_direct2 == '+':
-                converted_pos2 = ctg_start_pos2 + read_pos2 - 1
-            else:
-                converted_pos2 = ctg_end_pos2 - read_pos2 + 1
-            if chrn1 not in chr_len_db or chrn2 not in chr_len_db:
-                continue
-            pos1_index = int(converted_pos1 / long_bin_size)
-            pos2_index = int(converted_pos2 / long_bin_size)
+                chr1_index = chr_order.index(chrn1)
+                chr2_index = chr_order.index(chrn2)
 
-            chr1_index = chr_order.index(chrn1)
-            chr2_index = chr_order.index(chrn2)
+                whole_pos1 = bin_offset[chr1_index] + pos1_index
+                whole_pos2 = bin_offset[chr2_index] + pos2_index
+                try:
+                    read_count_whole_genome[whole_pos1][whole_pos2] += 1
+                    read_count_whole_genome[whole_pos2][whole_pos1] += 1
+                except IndexError:
+                    time_print("Index error on whole genome: index1: %d, index2: %d, bin counts: %d" % (
+                        whole_pos1, whole_pos2, total_bin_count))
+    else:
+        with pysam.AlignmentFile(bam, 'rb') as fin:
+            for line in fin:
+                if line.is_unmapped or line.mate_is_unmapped:
+                    continue
+                chrn1 = line.reference_name
+                chrn2 = line.next_reference_name
+                if chrn1 not in chr_order or chrn2 not in chr_order:
+                    continue
 
-            whole_pos1 = bin_offset[chr1_index] + pos1_index
-            whole_pos2 = bin_offset[chr2_index] + pos2_index
-            try:
-                read_count_whole_genome[whole_pos1][whole_pos2] += 1
-                read_count_whole_genome[whole_pos2][whole_pos1] += 1
-            except IndexError:
-                time_print("Index error on whole genome: index1: %d, index2: %d, bin counts: %d" % (
-                    whole_pos1, whole_pos2, total_bin_count))
+                read_pos1 = line.reference_start + 1
+                read_pos2 = line.next_reference_start + 1
+
+                pos1_index = int(read_pos1 / long_bin_size)
+                pos2_index = int(read_pos2 / long_bin_size)
+
+                chr1_index = chr_order.index(chrn1)
+                chr2_index = chr_order.index(chrn2)
+
+                whole_pos1 = bin_offset[chr1_index] + pos1_index
+                whole_pos2 = bin_offset[chr2_index] + pos2_index
+                try:
+                    read_count_whole_genome[whole_pos1][whole_pos2] += 1
+                    read_count_whole_genome[whole_pos2][whole_pos1] += 1
+                except IndexError:
+                    time_print("Index error on whole genome: index1: %d, index2: %d, bin counts: %d" % (
+                        whole_pos1, whole_pos2, total_bin_count))
 
     return np.array(bin_offset), np.array(read_count_whole_genome)
 
