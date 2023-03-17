@@ -39,6 +39,7 @@ export LD_LIBRAYR_PATH="/path/to/htslib/lib/":$LD_LIBRARY_PATH
 * numpy
 * matplotlib
 * jcvi
+* h5py
 ### Installation
 ```bash
 git clone https://github.com/sc-zhang/ALLHiC_components.git
@@ -107,21 +108,24 @@ optional arguments:
 
 **ALLHiC_plot.py** is used to plot heatmap of Hi-C singal, and compare with original version, it can reduce the usage of memory, and easier plot heatmap with other resolution.
 ```bash
-usage: ALLHiC_plot.py [-h] -b BAM -l LIST [-a AGP] [-n NPZ] [-m MIN_SIZE] [-s SIZE] [-o OUTDIR] [--line | --grid]
+usage: ALLHiC_plot.py [-h] -b BAM -l LIST [-a AGP] [-5 H5] [-m MIN_SIZE] [-s SIZE] [-c CMAP] [-o OUTDIR] [--line | --block] [--linecolor LINECOLOR]
 
 options:
   -h, --help            show this help message and exit
   -b BAM, --bam BAM     Input bam file
   -l LIST, --list LIST  Chromosome list, contain: ID Length
   -a AGP, --agp AGP     Input AGP file, if bam file is a contig-level mapping, agp file is required
-  -n NPZ, --npz NPZ     npz file of hic signal, optional, if not exist, it will be generate after reading hic signals, or it will be loaded for drawing other resolution of heatmap
+  -5 H5, --h5 H5        h5 file of hic signal, optional, if not exist, it will be generate after reading hic signals, or it will be loaded for drawing other resolution of heatmap
   -m MIN_SIZE, --min_size MIN_SIZE
                         Minium bin size of heatmap, default=50k
-  -s SIZE, --size SIZE  Bin size of heatmap, can be a list separated by comma, default=500k, notice: it must be n times of min_size (n is integer) or we will ajust it to nearest one
+  -s SIZE, --size SIZE  Bin size of heatmap, can be a list separated by comma, default=500k, notice: it must be n times of min_size (n is integer) or we will adjust it to nearest one
+  -c CMAP, --cmap CMAP  CMAP for drawing heatmap, default="YlOrRd"
   -o OUTDIR, --outdir OUTDIR
                         Output directory, default=workdir
   --line                Draw dash line for each chromosome
-  --grid                Draw dash grid for each chromosome
+  --block               Draw dash block for each chromosome
+  --linecolor LINECOLOR
+                        Color of dash line or dash block, default="grey"
 ```
 
 **Other scripts** are under development, and not recommend to use.

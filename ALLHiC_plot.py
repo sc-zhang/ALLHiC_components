@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import argparse
 import numpy as np
+import h5py
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import pysam
@@ -20,19 +21,21 @@ def get_opts():
     groups.add_argument('-l', '--list', help='Chromosome list, contain: ID\tLength', required=True)
     groups.add_argument('-a', '--agp', help='Input AGP file, if bam file is a contig-level mapping, agp file is '
                                             'required', default="")
-    groups.add_argument('-n', '--npz',
-                        help="npz file of hic signal, optional, if not exist, it will be generate after reading "
+    groups.add_argument('-5', '--h5',
+                        help="h5 file of hic signal, optional, if not exist, it will be generate after reading "
                              "hic signals, or it will be loaded for drawing other resolution of heatmap",
                         default="")
     groups.add_argument('-m', '--min_size', help="Minium bin size of heatmap, default=50k", default="50k")
     groups.add_argument('-s', '--size',
                         help="Bin size of heatmap, can be a list separated by comma, default=500k, notice: it must "
-                             "be n times of min_size (n is integer) or we will ajust it to nearest one",
+                             "be n times of min_size (n is integer) or we will adjust it to nearest one",
                         default="500k")
+    groups.add_argument('-c', '--cmap', help='CMAP for drawing heatmap, default="YlOrRd"', default='YlOrRd')
     groups.add_argument('-o', '--outdir', help='Output directory, default=workdir', default='workdir')
     groups_ex = groups.add_mutually_exclusive_group()
     groups_ex.add_argument('--line', help='Draw dash line for each chromosome', action='store_true')
-    groups_ex.add_argument('--grid', help='Draw dash grid for each chromosome', action='store_true')
+    groups_ex.add_argument('--block', help='Draw dash block for each chromosome', action='store_true')
+    groups.add_argument('--linecolor', help='Color of dash line or dash block, default="grey"', default='grey')
 
     return groups.parse_args()
 
@@ -173,7 +176,9 @@ def calc_read_count_per_min_size(chr_len_db, chr_order, bam, agp, min_size):
 
 
 def draw_heatmap(read_count_whole_genome_min_size, bin_offset_min_size,
-                 ratio, chr_order, min_size, draw_line, draw_grid):
+                 ratio, chr_order, min_size, cmap, draw_line, draw_block,
+                 line_color):
+
     bin_size = int(ratio * min_size)
     short_bin_size = long2short(bin_size)
 
@@ -189,8 +194,7 @@ def draw_heatmap(read_count_whole_genome_min_size, bin_offset_min_size,
     data = data.reshape(ratio_cnt, -1, ratio_cnt).sum(axis=1)
 
     fn = "%s_Whole_genome.pdf" % short_bin_size
-    cmap = plt.get_cmap("YlOrRd")
-    #cmap.set_over('black')
+    cmap = plt.get_cmap(cmap)
     ax = plt.gca()
     with np.errstate(divide='ignore'):
         hmap = ax.imshow(np.log2(data[: plt_cnt, : plt_cnt]), interpolation='nearest', origin='lower', cmap=cmap,
@@ -204,7 +208,7 @@ def draw_heatmap(read_count_whole_genome_min_size, bin_offset_min_size,
         ticks.set_rotation(0)
     title = 'Whole_genome_' + short_bin_size
     plt.xlabel("Bins (" + short_bin_size.lower() + "b per bin)", fontsize=8)
-    if draw_line or draw_grid:
+    if draw_line or draw_block:
         idx = 1
         x_ticks = []
         y_ticks = []
@@ -213,15 +217,15 @@ def draw_heatmap(read_count_whole_genome_min_size, bin_offset_min_size,
             er = bin_offset_min_size[idx] * 1. / ratio
             mr = (sr+er) / 2.
             if draw_line:
-                plt.plot((sr, sr), (0, plt_cnt), color='grey', linestyle=':', lw=.5)
-                plt.plot((er, er), (0, plt_cnt), color='grey', linestyle=':', lw=.5)
-                plt.plot((0, plt_cnt), (sr, sr), color='grey', linestyle=':', lw=.5)
-                plt.plot((0, plt_cnt), (er, er), color='grey', linestyle=':', lw=.5)
+                plt.plot((sr, sr), (0, plt_cnt), color=line_color, linestyle=':', lw=.5)
+                plt.plot((er, er), (0, plt_cnt), color=line_color, linestyle=':', lw=.5)
+                plt.plot((0, plt_cnt), (sr, sr), color=line_color, linestyle=':', lw=.5)
+                plt.plot((0, plt_cnt), (er, er), color=line_color, linestyle=':', lw=.5)
             else:
-                plt.plot((sr, sr), (sr, er), color='grey', linestyle=':', lw=.5)
-                plt.plot((er, er), (sr, er), color='grey', linestyle=':', lw=.5)
-                plt.plot((sr, er), (sr, sr), color='grey', linestyle=':', lw=.5)
-                plt.plot((sr, er), (er, er), color='grey', linestyle=':', lw=.5)
+                plt.plot((sr, sr), (sr, er), color=line_color, linestyle=':', lw=.5)
+                plt.plot((er, er), (sr, er), color=line_color, linestyle=':', lw=.5)
+                plt.plot((sr, er), (sr, sr), color=line_color, linestyle=':', lw=.5)
+                plt.plot((sr, er), (er, er), color=line_color, linestyle=':', lw=.5)
             x_ticks.append(mr)
             y_ticks.append(mr)
             idx += 1
@@ -258,8 +262,6 @@ def draw_heatmap(read_count_whole_genome_min_size, bin_offset_min_size,
 
         plt.subplot(row_cnt, col_cnt, idx)
         ax = plt.gca()
-        cmap = plt.get_cmap('YlOrRd')
-        #cmap.set_over('black')
         with np.errstate(divide='ignore'):
             hmap = ax.imshow(np.log2(sub_data[: plt_cnt, : plt_cnt]), interpolation='nearest', origin='lower',
                              cmap=cmap, aspect='equal')
@@ -273,23 +275,23 @@ def draw_heatmap(read_count_whole_genome_min_size, bin_offset_min_size,
     plt.close('all')
 
 
-def ALLHiC_plot(bam, agp, chr_list, npz_file, min_size, bin_size, draw_line, draw_grid, out_dir):
+def ALLHiC_plot(bam, agp, chr_list, h5_file, minsize, binsize, cmap, draw_line, draw_block, line_color, out_dir):
     bam_file = os.path.abspath(bam)
     if agp:
         agp_file = os.path.abspath(agp)
     else:
         agp_file = agp
     chr_list = os.path.abspath(chr_list)
-    if npz_file != "":
-        npz_file = os.path.abspath(npz_file)
+    if h5_file != "":
+        h5_file = os.path.abspath(h5_file)
 
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
     os.chdir(out_dir)
 
-    min_size = short2long(min_size)
+    min_size = short2long(minsize)
 
-    bin_list = bin_size.split(',')
+    bin_list = binsize.split(',')
     bin_ratio = []
     for bin_size in bin_list:
         long_bin_size = short2long(bin_size)
@@ -299,17 +301,18 @@ def ALLHiC_plot(bam, agp, chr_list, npz_file, min_size, bin_size, draw_line, dra
     chr_len_db, chr_order = get_chr_len(chr_list)
 
     time_print("Step2: Get signal matrix")
-    if npz_file != "" and os.path.exists(npz_file):
-        npz_data = np.load(npz_file)
-        bin_offset_min_size = npz_data['bin_offset_min_size']
-        read_count_whole_genome_min_size = npz_data['read_count_whole_genome_min_size']
+    if h5_file != "" and os.path.exists(h5_file):
+        h5_data = h5py.File(h5_file, 'r')
+        bin_offset_min_size = h5_data['bin_offset_min_size']
+        read_count_whole_genome_min_size = h5_data['read_count_whole_genome_min_size']
     else:
         bin_offset_min_size, read_count_whole_genome_min_size = calc_read_count_per_min_size(chr_len_db, chr_order,
                                                                                              bam_file, agp_file,
                                                                                              min_size)
-        if npz_file != "":
-            np.savez(npz_file.replace('.npz', ''), bin_offset_min_size=bin_offset_min_size,
-                     read_count_whole_genome_min_size=read_count_whole_genome_min_size)
+        if h5_file != "":
+            h5 = h5py.File(h5_file, 'w')
+            h5.create_dataset('bin_offset_min_size', data=bin_offset_min_size)
+            h5.create_dataset('read_count_whole_genome_min_size', data=read_count_whole_genome_min_size)
 
     time_print("Step3: Draw heatmap")
 
@@ -317,7 +320,8 @@ def ALLHiC_plot(bam, agp, chr_list, npz_file, min_size, bin_size, draw_line, dra
         ratio = bin_ratio[i]
         time_print("Drawing with bin size %s" % bin_list[i])
         draw_heatmap(read_count_whole_genome_min_size, bin_offset_min_size, 
-                     ratio, chr_order, min_size, draw_line, draw_grid)
+                     ratio, chr_order, min_size, cmap, draw_line, draw_block,
+                     line_color)
     os.chdir('..')
     time_print("Success")
 
@@ -327,10 +331,12 @@ if __name__ == "__main__":
     bam = opts.bam
     agp = opts.agp
     chr_list = opts.list
-    npz_file = opts.npz
+    h5_file = opts.h5
     minsize = opts.min_size
     binsize = opts.size
+    cmap = opts.cmap
     out_dir = opts.outdir
     draw_line = opts.line
-    draw_grid = opts.grid
-    ALLHiC_plot(bam, agp, chr_list, npz_file, minsize, binsize, draw_line, draw_grid, out_dir)
+    draw_block = opts.block
+    line_color = opts.linecolor
+    ALLHiC_plot(bam, agp, chr_list, h5_file, minsize, binsize, cmap, draw_line, draw_block, line_color, out_dir)
