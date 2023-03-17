@@ -29,6 +29,7 @@ def get_opts():
                              "be n times of min_size (n is integer) or we will ajust it to nearest one",
                         default="500k")
     groups.add_argument('-o', '--outdir', help='Output directory, default=workdir', default='workdir')
+    groups.add_argument('--line', help='Draw dash line for each chromosome', action='store_true')
 
     return groups.parse_args()
 
@@ -142,7 +143,7 @@ def calc_read_count_per_min_size(chr_len_db, chr_order, bam, agp, min_size):
     return np.array(bin_offset), np.array(read_count_whole_genome)
 
 
-def draw_heatmap(read_count_whole_genome_min_size, bin_offset_min_size, ratio, chr_order, min_size):
+def draw_heatmap(read_count_whole_genome_min_size, bin_offset_min_size, ratio, chr_order, min_size, draw_line):
     bin_size = int(ratio * min_size)
     short_bin_size = long2short(bin_size)
 
@@ -164,6 +165,7 @@ def draw_heatmap(read_count_whole_genome_min_size, bin_offset_min_size, ratio, c
     with np.errstate(divide='ignore'):
         hmap = ax.imshow(np.log2(data[: plt_cnt, : plt_cnt]), interpolation='nearest', origin='lower', cmap=cmap,
                          aspect='equal')
+
     plt.colorbar(mappable=hmap, cax=None, ax=None, shrink=0.5)
     plt.tick_params(labelsize=6)
     for ticks in ax.get_xticklabels():
@@ -172,8 +174,27 @@ def draw_heatmap(read_count_whole_genome_min_size, bin_offset_min_size, ratio, c
         ticks.set_rotation(0)
     title = 'Whole_genome_' + short_bin_size
     plt.xlabel("Bins (" + short_bin_size.lower() + "b per bin)", fontsize=8)
-    plt.xticks([])
-    plt.yticks([])
+    if draw_line:
+        idx = 0
+        x_ticks = []
+        y_ticks = []
+        for _ in chr_order:
+            sr = bin_offset_min_size[idx - 1] * 1. / ratio
+            er = bin_offset_min_size[idx] * 1. / ratio
+            mr = (sr+er) / 2.
+            plt.plot((sr, sr), (0, plt_cnt), color='black', linestyle=':')
+            plt.plot((er, er), (0, plt_cnt), color='black', linestyle=':')
+            plt.plot((0, plt_cnt), (sr, sr), color='black', linestyle=':')
+            plt.plot((0, plt_cnt), (er, er), color='black', linestyle=':')
+            x_ticks.append(mr)
+            y_ticks.append(mr)
+            idx += 1
+
+        plt.xticks(x_ticks, chr_order)
+        plt.yticks(y_ticks, chr_order)
+    else:
+        plt.xticks([])
+        plt.yticks([])
     plt.title(title, y=1.01, fontsize=12)
     plt.savefig(fn, bbox_inches='tight', dpi=200)
     plt.close('all')
@@ -214,38 +235,39 @@ def draw_heatmap(read_count_whole_genome_min_size, bin_offset_min_size, ratio, c
     plt.close('all')
 
 
-def ALLHiC_plot(bam, agp, chrlist, npzfile, minsize, binsize, outdir):
-    bam = os.path.abspath(bam)
-    agp = os.path.abspath(agp)
-    chrlist = os.path.abspath(chrlist)
-    if npzfile != "":
-        npzfile = os.path.abspath(npzfile)
+def ALLHiC_plot(bam, agp, chr_list, npz_file, min_size, bin_size, draw_line, out_dir):
+    bam_file = os.path.abspath(bam)
+    agp_file = os.path.abspath(agp)
+    chr_list = os.path.abspath(chr_list)
+    if npz_file != "":
+        npz_file = os.path.abspath(npz_file)
 
-    if not os.path.exists(outdir):
-        os.mkdir(outdir)
-    os.chdir(outdir)
+    if not os.path.exists(out_dir):
+        os.mkdir(out_dir)
+    os.chdir(out_dir)
 
-    min_size = short2long(minsize)
+    min_size = short2long(min_size)
 
-    bin_list = binsize.split(',')
+    bin_list = bin_size.split(',')
     bin_ratio = []
     for bin_size in bin_list:
         long_bin_size = short2long(bin_size)
         bin_ratio.append(int(round(long_bin_size / min_size + 0.01, 0)))
 
     time_print("Step1: Get chromosome length")
-    chr_len_db, chr_order = get_chr_len(chrlist)
+    chr_len_db, chr_order = get_chr_len(chr_list)
 
     time_print("Step2: Get signal matrix")
-    if npzfile != "" and os.path.exists(npzfile):
-        npzdata = np.load(npzfile)
-        bin_offset_min_size = npzdata['bin_offset_min_size']
-        read_count_whole_genome_min_size = npzdata['read_count_whole_genome_min_size']
+    if npz_file != "" and os.path.exists(npz_file):
+        npz_data = np.load(npz_file)
+        bin_offset_min_size = npz_data['bin_offset_min_size']
+        read_count_whole_genome_min_size = npz_data['read_count_whole_genome_min_size']
     else:
-        bin_offset_min_size, read_count_whole_genome_min_size = calc_read_count_per_min_size(chr_len_db, chr_order, bam,
-                                                                                             agp, min_size)
-        if npzfile != "":
-            np.savez(npzfile.replace('.npz', ''), bin_offset_min_size=bin_offset_min_size,
+        bin_offset_min_size, read_count_whole_genome_min_size = calc_read_count_per_min_size(chr_len_db, chr_order,
+                                                                                             bam_file, agp_file,
+                                                                                             min_size)
+        if npz_file != "":
+            np.savez(npz_file.replace('.npz', ''), bin_offset_min_size=bin_offset_min_size,
                      read_count_whole_genome_min_size=read_count_whole_genome_min_size)
 
     time_print("Step3: Draw heatmap")
@@ -253,7 +275,7 @@ def ALLHiC_plot(bam, agp, chrlist, npzfile, minsize, binsize, outdir):
     for i in range(0, len(bin_ratio)):
         ratio = bin_ratio[i]
         time_print("Drawing with bin size %s" % bin_list[i])
-        draw_heatmap(read_count_whole_genome_min_size, bin_offset_min_size, ratio, chr_order, min_size)
+        draw_heatmap(read_count_whole_genome_min_size, bin_offset_min_size, ratio, chr_order, min_size, draw_line)
     os.chdir('..')
     time_print("Success")
 
@@ -262,10 +284,10 @@ if __name__ == "__main__":
     opts = get_opts()
     bam = opts.bam
     agp = opts.agp
-    chrlist = opts.list
-    npzfile = opts.npz
+    chr_list = opts.list
+    npz_file = opts.npz
     minsize = opts.min_size
     binsize = opts.size
-    outdir = opts.outdir
-
-    ALLHiC_plot(bam, agp, chrlist, npzfile, minsize, binsize, outdir)
+    out_dir = opts.outdir
+    draw_line = opts.line
+    ALLHiC_plot(bam, agp, chr_list, npz_file, minsize, binsize, draw_line, out_dir)
