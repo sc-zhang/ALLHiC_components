@@ -275,7 +275,10 @@ def draw_heatmap(read_count_whole_genome_min_size, bin_offset_min_size,
 
 def ALLHiC_plot(bam, agp, chr_list, npz_file, min_size, bin_size, draw_line, draw_grid, out_dir):
     bam_file = os.path.abspath(bam)
-    agp_file = os.path.abspath(agp)
+    if agp:
+        agp_file = os.path.abspath(agp)
+    else:
+        agp_file = agp
     chr_list = os.path.abspath(chr_list)
     if npz_file != "":
         npz_file = os.path.abspath(npz_file)
