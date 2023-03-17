@@ -107,25 +107,21 @@ optional arguments:
 
 **ALLHiC_plot.py** is used to plot heatmap of Hi-C singal, and compare with original version, it can reduce the usage of memory, and easier plot heatmap with other resolution.
 ```bash
-usage: ALLHiC_plot.py [-h] -b BAM -a AGP -l LIST [-n NPZ] [-m MIN_SIZE]
-                      [-s SIZE] [-o OUTDIR] [--line]
+usage: bam_HiCplotter.py [-h] -b BAM -l LIST [-n NPZ] [-m MIN_SIZE] [-s SIZE] [-o OUTDIR] [--line | --grid]
 
 options:
   -h, --help            show this help message and exit
   -b BAM, --bam BAM     Input bam file
-  -a AGP, --agp AGP     Input AGP file
   -l LIST, --list LIST  Chromosome list, contain: ID Length
-  -n NPZ, --npz NPZ     npz file of hic signal, optional, if not exist, it
-                        will be generate after reading hic signals, or it will
-                        be loaded for drawing other resolution of heatmap
+  -n NPZ, --npz NPZ     npz file of hic signal, optional, if this parameter is set but file not exist, it will be generate after reading hic signals, or it will be loaded for drawing other resolution of heatmap
   -m MIN_SIZE, --min_size MIN_SIZE
                         Minium bin size of heatmap, default=50k
-  -s SIZE, --size SIZE  Bin size of heatmap, can be a list separated by comma,
-                        default=500k, notice: it must be n times of min_size
-                        (n is integer) or we will ajust it to nearest one
+  -s SIZE, --size SIZE  Bin size of heatmap, can be a list separated by comma, default=500k, notice: it must be n times of min_size (n is integer) or we will ajust it to nearest one
   -o OUTDIR, --outdir OUTDIR
                         Output directory, default=workdir
   --line                Draw dash line for each chromosome
+  --grid                Draw dash grid for each chromosome
+
 ```
 
 **Other scripts** are under development, and not recommend to use.

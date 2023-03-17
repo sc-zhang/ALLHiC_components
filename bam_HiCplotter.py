@@ -133,7 +133,7 @@ def draw_heatmap(read_count_whole_genome_min_size, bin_offset_min_size,
 
     fn = "%s_Whole_genome.pdf" % short_bin_size
     cmap = plt.get_cmap("YlOrRd")
-    cmap.set_over('black')
+    #cmap.set_over('black')
     ax = plt.gca()
     with np.errstate(divide='ignore'):
         hmap = ax.imshow(np.log2(data[: plt_cnt, : plt_cnt]), interpolation='nearest', origin='lower', cmap=cmap,
@@ -202,7 +202,7 @@ def draw_heatmap(read_count_whole_genome_min_size, bin_offset_min_size,
         plt.subplot(row_cnt, col_cnt, idx)
         ax = plt.gca()
         cmap = plt.get_cmap('YlOrRd')
-        cmap.set_over('black')
+        #cmap.set_over('black')
         with np.errstate(divide='ignore'):
             hmap = ax.imshow(np.log2(sub_data[: plt_cnt, : plt_cnt]), interpolation='nearest', origin='lower',
                              cmap=cmap, aspect='equal')
