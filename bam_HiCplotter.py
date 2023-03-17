@@ -145,23 +145,25 @@ def draw_heatmap(read_count_whole_genome_min_size, bin_offset_min_size, ratio, c
     title = 'Whole_genome_' + short_bin_size
     plt.xlabel("Bins (" + short_bin_size.lower() + "b per bin)", fontsize=8)
     if draw_line:
-        idx = 0
+        idx = 1
         x_ticks = []
         y_ticks = []
         for _ in chr_order:
             sr = bin_offset_min_size[idx - 1] * 1. / ratio
             er = bin_offset_min_size[idx] * 1. / ratio
             mr = (sr+er) / 2.
-            plt.plot((sr, sr), (0, plt_cnt), color='black', linestyle=':')
-            plt.plot((er, er), (0, plt_cnt), color='black', linestyle=':')
-            plt.plot((0, plt_cnt), (sr, sr), color='black', linestyle=':')
-            plt.plot((0, plt_cnt), (er, er), color='black', linestyle=':')
+            plt.plot((sr, sr), (0, plt_cnt), color='black', linestyle=':', lw=1)
+            plt.plot((er, er), (0, plt_cnt), color='black', linestyle=':', lw=1)
+            plt.plot((0, plt_cnt), (sr, sr), color='black', linestyle=':', lw=1)
+            plt.plot((0, plt_cnt), (er, er), color='black', linestyle=':', lw=1)
             x_ticks.append(mr)
             y_ticks.append(mr)
             idx += 1
 
         plt.xticks(x_ticks, chr_order)
         plt.yticks(y_ticks, chr_order)
+        plt.xlim(0, plt_cnt)
+        plt.ylim(0, plt_cnt)
     else:
         plt.xticks([])
         plt.yticks([])
