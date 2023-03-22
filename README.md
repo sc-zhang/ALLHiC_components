@@ -108,7 +108,8 @@ optional arguments:
 
 **ALLHiC_plot.py** is used to plot heatmap of Hi-C singal, and compare with original version, it can reduce the usage of memory, and easier plot heatmap with other resolution.
 ```bash
-usage: ALLHiC_plot.py [-h] -b BAM -l LIST [-a AGP] [-5 H5] [-m MIN_SIZE] [-s SIZE] [-c CMAP] [-o OUTDIR] [--line | --block] [--linecolor LINECOLOR]
+# Notice: bam file must be indexed
+usage: ALLHiC_plot.py [-h] -b BAM -l LIST [-a AGP] [-5 H5] [-m MIN_SIZE] [-s SIZE] [-c CMAP] [-o OUTDIR] [--line | --block] [--linecolor LINECOLOR] [-t THREAD]
 
 options:
   -h, --help            show this help message and exit
@@ -126,6 +127,8 @@ options:
   --block               Draw dash block for each chromosome
   --linecolor LINECOLOR
                         Color of dash line or dash block, default="grey"
+  -t THREAD, --thread THREAD
+                        Threads for reading bam, default=1
 ```
 
 **Other scripts** are under development, and not recommend to use.
