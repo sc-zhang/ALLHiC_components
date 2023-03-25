@@ -1,11 +1,13 @@
 #include "Prune.h"
+#include <htslib/sam.h>
+
 
 Prune::Prune() {
 	this->bamfile = "";
 	this->table = "";
 }
 
-Prune::Prune(string bamfile, string table) {
+Prune::Prune(std::string bamfile, std::string table) {
 	this->bamfile = bamfile;
 	this->table = table;
 }
@@ -13,7 +15,7 @@ Prune::Prune(string bamfile, string table) {
 Prune::~Prune(){}
 
 //Split string by delimiter
-bool Prune::Split(string source, string delim, vector<string>&target) {
+bool Prune::Split(std::string source, std::string delim, std::vector<std::string>&target) {
 	target.clear();
 	char *p;
 	p = strtok(const_cast<char*>(source.c_str()), delim.c_str());
@@ -28,7 +30,7 @@ bool Prune::Split(string source, string delim, vector<string>&target) {
 }
 
 
-void Prune::SetParameter(string bamfile, string table) {
+void Prune::SetParameter(std::string bamfile, std::string table) {
 	this->bamfile = bamfile;
 	this->table = table;
 }
@@ -41,7 +43,7 @@ bool Prune::GeneratePairsAndCtgs() {
 	}
 	else {
 		int ctg1, ctg2;
-		string sctg1, sctg2;
+		std::string sctg1, sctg2;
 		bam1_t *rec = bam_init1();
 		htsFile *inbam = hts_open(bamfile.c_str(), "rb");
 		sam_hdr_t *hdr = sam_hdr_read(inbam);
@@ -83,14 +85,14 @@ bool Prune::GeneratePairsAndCtgs() {
 
 //Create removedb_Allele.txt, removedb_nonBest.txt and log.txt;
 bool Prune::GenerateRemovedb() {
-	ifstream fin;
-	unordered_set<string>tempset;
-	unordered_map<int, int> retaindb;
-	unordered_map<int, int> numdb;
-	unordered_map<int, unordered_set <int>> removedb;
-	vector<string>data;
-	string temp;
-	string sctg1, sctg2;
+	std::ifstream fin;
+	std::unordered_set<std::string>tempset;
+	std::unordered_map<int, int> retaindb;
+	std::unordered_map<int, int> numdb;
+	std::unordered_map<int, std::unordered_set <int>> removedb;
+	std::vector<std::string>data;
+	std::string temp;
+	std::string sctg1, sctg2;
 	int ctg1, ctg2;
 	long long num_r;
 	
@@ -121,7 +123,7 @@ bool Prune::GenerateRemovedb() {
 			for (long i = 2; i < data.size(); i++) {
 				sctg1 = data[i];
 				ctg1 = ctgidxdb[sctg1];
-				for(unordered_map<int, long>::iterator iter=ctgdb.begin(); iter!=ctgdb.end(); iter++){
+				for(std::unordered_map<int, long>::iterator iter=ctgdb.begin(); iter!=ctgdb.end(); iter++){
 					ctg2 = iter->first;
 					sctg2 = sctgdb[ctg2];
 					int nctg1=ctg1, nctg2=ctg2;
@@ -147,7 +149,7 @@ bool Prune::GenerateRemovedb() {
 					}
 				}
 			}
-			for(unordered_map<int, int>::iterator iter=retaindb.begin(); iter!=retaindb.end(); iter++){
+			for(std::unordered_map<int, int>::iterator iter=retaindb.begin(); iter!=retaindb.end(); iter++){
 				ctg1 = iter->first;
 				ctg2 = iter->second;
 				sctg1 = sctgdb[ctg1];
@@ -169,8 +171,8 @@ bool Prune::GenerateRemovedb() {
 //Directly to create prunning.bam through pipe with samtools
 long long Prune::CreatePrunedBam() {
 	int ctg1, ctg2;
-	string sctg1, sctg2;
-	string outbam = "prunning.bam";
+	std::string sctg1, sctg2;
+	std::string outbam = "prunning.bam";
 	htsFile *in = hts_open(bamfile.c_str(), "rb");
 	htsFile *out = hts_open(outbam.c_str(), "wb");
 	sam_hdr_t *hdr = sam_hdr_read(in);

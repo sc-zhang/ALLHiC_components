@@ -1,5 +1,6 @@
 #pragma once
-
+#ifndef __PRUNE_H__
+#define __PRUNE_H__
 #include <iostream>
 #include <fstream>
 #include <unordered_map>
@@ -7,27 +8,26 @@
 #include <vector>
 #include <string>
 #include <cstring>
-#include <htslib/sam.h>
-
-using namespace std;
 
 class Prune {
 private:
-	string bamfile;
-	string table;
-	unordered_map<int, unordered_map <int, long long>> pairdb;
-	unordered_map<int, long> ctgdb;
-	unordered_map<string, int> ctgidxdb;
-	unordered_map<int, string> sctgdb;
-	unordered_map<int, unordered_set <int>> allretaindb;
+	std::string bamfile;
+	std::string table;
+	std::unordered_map<int, std::unordered_map <int, long long>> pairdb;
+	std::unordered_map<int, long> ctgdb;
+	std::unordered_map<std::string, int> ctgidxdb;
+	std::unordered_map<int, std::string> sctgdb;
+	std::unordered_map<int, std::unordered_set <int>> allretaindb;
 
-	bool Split(string source, string delim, vector<string>&target);
+	bool Split(std::string source, std::string delim, std::vector<std::string>&target);
 public:
 	Prune();
-	Prune(string bamfile, string table);
+	Prune(std::string bamfile, std::string table);
 	~Prune();
-	void SetParameter(string bamfile, string table);
+	void SetParameter(std::string bamfile, std::string table);
 	bool GeneratePairsAndCtgs();
 	bool GenerateRemovedb();
 	long long CreatePrunedBam();
 };
+
+#endif
