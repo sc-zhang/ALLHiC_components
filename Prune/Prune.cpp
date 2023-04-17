@@ -116,6 +116,7 @@ bool Prune::GenerateRemovedb() {
 						ctg2 = tmp;
 					}
 					removedb[ctg1].insert(ctg2);
+					allremovedb[ctg1].insert(ctg2);
 				}
 			}
 			retaindb.clear();
@@ -143,23 +144,12 @@ bool Prune::GenerateRemovedb() {
 						numdb[ctg2] = num_r;
 					}else{
 						if(num_r>numdb[ctg2]){
+							allremovedb[ctg2].insert(retaindb[ctg2]);
 							retaindb[ctg2] = ctg1;
 							numdb[ctg2] = num_r;
 						}
 					}
 				}
-			}
-			for(std::unordered_map<int, int>::iterator iter=retaindb.begin(); iter!=retaindb.end(); iter++){
-				ctg1 = iter->first;
-				ctg2 = iter->second;
-				sctg1 = sctgdb[ctg1];
-				sctg2 = sctgdb[ctg2];
-				if(sctg1.compare(sctg2)>=0){
-					int tmp = ctg1;
-					ctg1 = ctg2;
-					ctg2 = tmp;
-				}
-				allretaindb[ctg1].insert(ctg2);
 			}
 		}
 	}else{
@@ -197,7 +187,7 @@ long long Prune::CreatePrunedBam() {
 			ctg1 = ctg2;
 			ctg2 = tmp;
 		}
-		if(allretaindb.count(ctg1)==0 || allretaindb[ctg1].count(ctg2)==0 || rec->core.mtid==-1){
+		if(allremovedb.count(ctg1) && allremovedb[ctg1].count(ctg2)){
 			rmcnt++;
 			continue;
 		}

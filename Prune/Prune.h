@@ -17,7 +17,7 @@ private:
 	std::unordered_map<int, long> ctgdb;
 	std::unordered_map<std::string, int> ctgidxdb;
 	std::unordered_map<int, std::string> sctgdb;
-	std::unordered_map<int, std::unordered_set <int>> allretaindb;
+	std::unordered_map<int, std::unordered_set <int>> allremovedb;
 
 	bool Split(std::string source, std::string delim, std::vector<std::string>&target);
 public:
