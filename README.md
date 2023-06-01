@@ -30,7 +30,7 @@ cd ..
 g++ -O3 --std=c++11 -o ALLHiC_prune -I. -Ihtslib-1.17 ALLHiC_prune.cpp Prune.cpp htslib-1.17/libhts.a -lz -llzma -lbz2 -lpthread
 ```
 
-Add the line below to .bashrc or .bash_profile
+If compiled with shared library "libhts.so" add the line below to .bashrc or .bash_profile
 ```bash
 export LD_LIBRAYR_PATH="/path/to/htslib/lib/":$LD_LIBRARY_PATH
 ```
