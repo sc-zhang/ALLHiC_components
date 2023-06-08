@@ -1,3 +1,6 @@
+# Introduction
+Some components that speed up and reduce resource cost for original ALLHiC.
+
 # Usage
 ## Prune
 ### Dependencies
