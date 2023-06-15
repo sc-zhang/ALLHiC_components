@@ -1,6 +1,6 @@
 CC=gcc
 CXX=g++
-PREFIX=../
+PREFIX=../bin/
 
 all: htslib
 	$(CXX) -O3 --std=c++11 -o ALLHiC_prune -I. -Ihtslib-1.17 ALLHiC_prune.cpp Prune.cpp htslib-1.17/libhts.a -lz -llzma -lbz2 -lpthread -lcurl

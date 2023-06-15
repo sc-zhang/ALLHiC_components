@@ -1,29 +1,27 @@
 # Introduction
 Some components that speed up and reduce resource cost for original ALLHiC.
 
-# Usage
-## Prune
-### Dependencies
-* [htslib](https://github.com/samtools/htslib)
-### Installation
-This is a new version of ALLHiC_prune, for directly use
+## Dependencies    
+* pysam    
+* numpy    
+* matplotlib    
+* jcvi    
+* h5py
+
+## Installation
 ```bash
 git clone https://github.com/sc-zhang/ALLHiC_components.git
-cd Prune
-chmod +x ALLHiC_prune
+cd ALLHiC_components
+chmod +x bin/*.*
+
+# install ALLHiC_prune
+cd src/
+make && make install
 ```
 
-For build
-```bash
-git clone https://github.com/sc-zhang/ALLHiC_components.git
-cd Prune/src
-make
-# the binary file ALLHiC_prune is which you need.
-# to install to custom path, use command below, default path is Prune/
-make install PREFIX=/path/to/install
-```
+## Usage
+**ALLHiC_prune** is used for prunning singals between allelic chromosomes, which was rewritten for speedup and mem reduce.
 
-### Usage
 ```bash
 ************************************************************************
     Usage: ./ALLHiC_prune -i Allele.ctg.table -b sorted.bam
@@ -32,20 +30,7 @@ make install PREFIX=/path/to/install
       -b : sorted.bam
 ************************************************************************
 ```
-## Other scripts
-### Dependencies
-* pysam
-* numpy
-* matplotlib
-* jcvi
-* h5py
-### Installation
-```bash
-git clone https://github.com/sc-zhang/ALLHiC_components.git
-chmod +x *.py
-chmod +x *.sh
-```
-### Usage
+
 **partition_gmap.py** is used for spliting bam and contig level fasta by chromosomes with allele table.
 ```bash
 usage: partition_gmap.py [-h] -r REF -g ALLELETABLE [-b BAM] [-d WORKDIR]
