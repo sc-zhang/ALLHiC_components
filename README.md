@@ -18,13 +18,9 @@ For build
 git clone https://github.com/sc-zhang/ALLHiC_components.git
 cd Prune/src
 make
-# for install use command below
+# the binary file ALLHiC_prune is which you need.
+# to install to custom path, use command below, default path is Prune/
 make install PREFIX=/path/to/install
-```
-
-If compiled with shared library "libhts.so" add the line below to .bashrc or .bash_profile
-```bash
-export LD_LIBRAYR_PATH="/path/to/htslib/lib/":$LD_LIBRARY_PATH
 ```
 
 ### Usage
