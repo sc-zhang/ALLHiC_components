@@ -16,21 +16,10 @@ chmod +x ALLHiC_prune
 For build
 ```bash
 git clone https://github.com/sc-zhang/ALLHiC_components.git
-cd Prune
-
-# with shared library "libhts.so"
-export CPPFLAGS="-I/path/to/htslib/include"
-export LDFLAGS="-L/path/to/htslib/lib"
+cd Prune/src
 make
-
-# with static library "libhts.a"
-wget https://github.com/samtools/htslib/releases/download/1.17/htslib-1.17.tar.bz2
-tar jxvf htslib-1.17.tar.bz2
-cd htslib-1.17
-./configure ./configure --disable-libcurl
-make
-cd ..
-g++ -O3 --std=c++11 -o ALLHiC_prune -I. -Ihtslib-1.17 ALLHiC_prune.cpp Prune.cpp htslib-1.17/libhts.a -lz -llzma -lbz2 -lpthread
+# for install use command below
+make install PREFIX=/path/to/install
 ```
 
 If compiled with shared library "libhts.so" add the line below to .bashrc or .bash_profile
