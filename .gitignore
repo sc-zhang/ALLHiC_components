@@ -1,3 +1,4 @@
 # Ignore Mac system file
 .DS_Store
 .vscode
+htslib-1.17
