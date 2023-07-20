@@ -86,7 +86,6 @@ bool Prune::GeneratePairsAndCtgs() {
 //Create removedb_Allele.txt, removedb_nonBest.txt and log.txt;
 bool Prune::GenerateRemovedb() {
 	std::ifstream fin;
-	std::unordered_set<std::string>tempset;
 	std::unordered_map<int, int> retaindb;
 	std::unordered_map<int, int> numdb;
 	std::unordered_map<int, std::unordered_set <int>> removedb;
@@ -95,11 +94,11 @@ bool Prune::GenerateRemovedb() {
 	std::string sctg1, sctg2;
 	int ctg1, ctg2;
 	long long num_r;
-	
+
 	fin.open(table);
 	if (fin) {
 		while (getline(fin, temp)) {
-			tempset.clear();
+			removedb.clear();
 			Split(temp, "\t", data);
 			if (data.size() <= 3) {
 				continue;
@@ -143,10 +142,18 @@ bool Prune::GenerateRemovedb() {
 						retaindb[ctg2] = ctg1;
 						numdb[ctg2] = num_r;
 					}else{
+						int prectg1 = retaindb[ctg2];
+						std::string presctg1 = sctgdb[prectg1];
 						if(num_r>numdb[ctg2]){
-							allremovedb[ctg2].insert(retaindb[ctg2]);
+							if(sctg2.compare(presctg1)>=0){
+								allremovedb[prectg1].insert(ctg2);
+							}else{
+								allremovedb[ctg2].insert(prectg1);
+							}
 							retaindb[ctg2] = ctg1;
 							numdb[ctg2] = num_r;
+						}else{
+							allremovedb[nctg1].insert(nctg2);
 						}
 					}
 				}
